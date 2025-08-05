@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        
+        :root {
+            --primary: #6d28d9;
+            --secondary: #f43f5e;
+            --accent: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 1rem;
+        }
+        
+        .cell {
+            width: 100%;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cell.x {
+            color: var(--primary);
+        }
+        
+        .cell.o {
+            color: var(--secondary);
+        }
+        
+        .cell:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .winning-cells {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: none; }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); }
+            100% { transform: scale(1); box-shadow: none; }
+        }
+        
+        .modal {
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="max-w-3xl w-full mx-auto">
+        <div class="text-center mb-4">
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">TIC TAC TOE</h1>
+            <p class="text-gray-600">Outsmart your opponent in this classic game of strategy</p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex space-x-2">
+                    <button id="pvp-btn" class="btn px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700">
+                        Player vs Player
+                    </button>
+                    <button id="pvc-btn" class="btn px-4 py-2 bg-pink-500 text-white rounded-lg font-medium hover:bg-pink-600">
+                        Player vs AI
+                    </button>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-medium text-gray-500">Current Turn</div>
+                    <div id="current-turn" class="text-xl font-bold">X</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3 mb-6 w-full max-w-md mx-auto">
+                <!-- Game board cells -->
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="0"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="1"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="2"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="3"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="4"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="5"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="6"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="7"></div>
+                <div class="cell border border-gray-200 rounded-lg cursor-pointer" data-index="8"></div>
+            </div>
+            
+            <div class="flex justify-between items-center">
+                <div class="flex space-x-6">
+                    <div class="text-center">
+                        <div class="text-sm font-medium text-gray-500">Player X</div>
+                        <div id="score-x" class="text-2xl font-bold text-purple-600">0</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm font-medium text-gray-500">Player O</div>
+                        <div id="score-o" class="text-2xl font-bold text-pink-500">0</div>
+                    </div>
+                </div>
+                <button id="restart-btn" class="btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">
+                    Restart Game
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game over modal -->
+    <div id="game-over-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
+            <h2 id="game-result" class="text-2xl font-bold mb-2 text-center">X Wins!</h2>
+            <p id="result-message" class="text-gray-600 text-center mb-6">Player X has won the game!</p>
+            <div class="flex justify-center space-x-4">
+                <button id="play-again-btn" class="btn px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700">
+                    Play Again
+                </button>
+                <button id="close-modal-btn" class="btn px-6 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game state variables
+            let board = ['', '', '', '', '', '', '', '', ''];
+            let currentPlayer = 'X';
+            let gameActive = true;
+            let gameMode = 'pvp'; // 'pvp' or 'pvc'
+            let scores = { X: 0, O: 0, ties: 0 };
+            
+            // DOM elements
+            const cells = document.querySelectorAll('.cell');
+            const currentTurnDisplay = document.getElementById('current-turn');
+            const scoreXDisplay = document.getElementById('score-x');
+            const scoreODisplay = document.getElementById('score-o');
+            const pvpBtn = document.getElementById('pvp-btn');
+            const pvcBtn = document.getElementById('pvc-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const gameOverModal = document.getElementById('game-over-modal');
+            const gameResultDisplay = document.getElementById('game-result');
+            const resultMessage = document.getElementById('result-message');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            // Initialize game
+            initGame();
+            
+            // Event listeners
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+            
+            pvpBtn.addEventListener('click', () => {
+                gameMode = 'pvp';
+                updateGameModeUI();
+                resetGame();
+            });
+            
+            pvcBtn.addEventListener('click', () => {
+                gameMode = 'pvc';
+                updateGameModeUI();
+                resetGame();
+            });
+            
+            restartBtn.addEventListener('click', resetGame);
+            
+            playAgainBtn.addEventListener('click', () => {
+                resetGame();
+                gameOverModal.classList.remove('show');
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                gameOverModal.classList.remove('show');
+            });
+            
+            // Functions
+            function initGame() {
+                loadScores();
+                updateScoreDisplay();
+                updateGameModeUI();
+            }
+            
+            function updateGameModeUI() {
+                if (gameMode === 'pvp') {
+                    pvpBtn.classList.add('ring-2', 'ring-purple-600');
+                    pvcBtn.classList.remove('ring-2', 'ring-pink-500');
+                } else {
+                    pvcBtn.classList.add('ring-2', 'ring-pink-500');
+                    pvpBtn.classList.remove('ring-2', 'ring-purple-600');
+                }
+            }
+            
+            function handleCellClick(e) {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+                
+                // If cell already has a value or game isn't active, do nothing
+                if (board[clickedCellIndex] !== '' || !gameActive) return;
+                
+                // Make move for human player
+                makeMove(clickedCellIndex, currentPlayer);
+                
+                // Check for win or tie
+                const winCombination = checkWin();
+                if (winCombination) {
+                    handleWin(winCombination);
+                    return;
+                }
+                
+                if (checkTie()) {
+                    handleTie();
+                    return;
+                }
+                
+                // Switch player
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateTurnDisplay();
+                
+                // If in PVC mode and it's AI's turn, make AI move
+                if (gameMode === 'pvc' && currentPlayer === 'O' && gameActive) {
+                    setTimeout(makeAIMove, 500);
+                }
+            }
+            
+            function makeMove(index, player) {
+                board[index] = player;
+                cells[index].classList.add(player.toLowerCase());
+                cells[index].textContent = player;
+            }
+            
+            function makeAIMove() {
+                let bestScore = -Infinity;
+                let bestMove;
+                
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        let score = minimax(board, 0, false);
+                        board[i] = '';
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = i;
+                        }
+                    }
+                }
+                
+                makeMove(bestMove, 'O');
+                
+                // Check for win or tie after AI move
+                const winCombination = checkWin();
+                if (winCombination) {
+                    handleWin(winCombination);
+                    return;
+                }
+                
+                if (checkTie()) {
+                    handleTie();
+                    return;
+                }
+                
+                currentPlayer = 'X';
+                updateTurnDisplay();
+            }
+            
+            function minimax(board, depth, isMaximizing) {
+                // Base cases
+                const winCombination = checkWin();
+                if (winCombination) {
+                    if (board[winCombination[0]] === 'O') return 10 - depth;
+                    else return -10 + depth;
+                }
+                
+                if (checkTie()) return 0;
+                
+                // Recursive case
+                if (isMaximizing) {
+                    let bestScore = -Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === '') {
+                            board[i] = 'O';
+                            let score = minimax(board, depth + 1, false);
+                            board[i] = '';
+                            bestScore = Math.max(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                } else {
+                    let worstScore = Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === '') {
+                            board[i] = 'X';
+                            let score = minimax(board, depth + 1, true);
+                            board[i] = '';
+                            worstScore = Math.min(score, worstScore);
+                        }
+                    }
+                    return worstScore;
+                }
+            }
+            
+            function checkWin() {
+                const winningCombinations = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                    [0, 4, 8], [2, 4, 6]             // diagonals
+                ];
+                
+                for (let combo of winningCombinations) {
+                    const [a, b, c] = combo;
+                    if (board[a] !== '' && board[a] === board[b] && board[a] === board[c]) {
+                        return combo;
+                    }
+                }
+                
+                return null;
+            }
+            
+            function highlightWinningCells(cellsToHighlight) {
+                cellsToHighlight.forEach(index => {
+                    cells[index].classList.add('winning-cells');
+                });
+            }
+            
+            function checkTie() {
+                return board.every(cell => cell !== '');
+            }
+            
+            function handleWin(winningCombination) {
+                gameActive = false;
+                highlightWinningCells(winningCombination);
+                
+                // Update scores
+                scores[currentPlayer]++;
+                updateScoreDisplay();
+                saveScores();
+                
+                // Show game over modal
+                gameResultDisplay.textContent = `${currentPlayer} Wins!`;
+                const winnerName = currentPlayer === 'X' ? 
+                    (gameMode === 'pvp' ? 'Player X' : 'You') : 
+                    (gameMode === 'pvp' ? 'Player O' : 'AI');
+                resultMessage.textContent = `${winnerName} has won the game!`;
+                gameOverModal.classList.add('show');
+            }
+            
+            function handleTie() {
+                gameActive = false;
+                scores.ties++;
+                updateScoreDisplay();
+                saveScores();
+                
+                gameResultDisplay.textContent = "It's a Tie!";
+                resultMessage.textContent = "The game ended in a draw!";
+                gameOverModal.classList.add('show');
+            }
+            
+            function updateTurnDisplay() {
+                currentTurnDisplay.textContent = currentPlayer;
+                if (currentPlayer === 'X') {
+                    currentTurnDisplay.className = 'text-xl font-bold text-purple-600';
+                } else {
+                    currentTurnDisplay.className = 'text-xl font-bold text-pink-500';
+                }
+            }
+            
+            function updateScoreDisplay() {
+                scoreXDisplay.textContent = scores.X;
+                scoreODisplay.textContent = scores.O;
+            }
+            
+            function resetGame() {
+                board = ['', '', '', '', '', '', '', '', ''];
+                currentPlayer = 'X';
+                gameActive = true;
+                
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('x', 'o', 'winning-cells');
+                });
+                
+                updateTurnDisplay();
+            }
+            
+            function saveScores() {
+                localStorage.setItem('ticTacToeScores', JSON.stringify(scores));
+            }
+            
+            function loadScores() {
+                const savedScores = localStorage.getItem('ticTacToeScores');
+                if (savedScores) {
+                    scores = JSON.parse(savedScores);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+```
